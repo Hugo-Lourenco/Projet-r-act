@@ -1,0 +1,5 @@
+node_modules/
+dist/
+API/data/*.db
+API/data/*.db-shm
+API/data/*.db-wal
