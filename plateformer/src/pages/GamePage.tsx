@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameEngine } from 'react-game-engine';
-import { ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, SkipForward } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { HERO_NAME, levelDialogues } from '../data/scriptDialogue';
 import { levels } from '../game/levels';
@@ -102,6 +102,12 @@ export const GamePage: React.FC = () => {
     setIntroIndex(nextIndex);
   }, [dialogue.length, introIndex, playDialogueClick, revealDialogue, speaker, spokenText.length, startMusic, visibleChars]);
 
+  const skipIntro = useCallback(() => {
+    setIntroIndex(0);
+    setStatus('playing');
+    startMusic();
+  }, [startMusic]);
+
   /** Niveau suivant : les pièces et le chrono sont conservés, le dialogue remet le jeu en pause. */
   const nextLevel = useCallback(() => {
     const next = levelIndex + 1;
@@ -169,17 +175,18 @@ export const GamePage: React.FC = () => {
   );
 
   useEffect(() => {
-    if (status !== 'intro') return;
+    if (status !== 'intro' && (status !== 'won' || isLastLevel)) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
-      advanceIntro();
+      if (status === 'intro') advanceIntro();
+      else nextLevel();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [advanceIntro, status]);
+  }, [advanceIntro, isLastLevel, nextLevel, status]);
 
   const focusEngine = (event: MouseEvent<HTMLDivElement>) => {
     if (status === 'playing') startMusic();
@@ -255,7 +262,21 @@ export const GamePage: React.FC = () => {
             <div className="dialogue-box" data-villain={speaker !== HERO_NAME} role="dialog" aria-label="Intro dialogue" onClick={advanceIntro}>
               <p className="dialogue-name">{speaker}</p>
               <p>{spokenText.slice(0, visibleChars)}</p>
-              <span className="dialogue-hint">Press Enter</span>
+              <div className="dialogue-actions">
+                <span className="dialogue-hint">Entrée pour continuer</span>
+                <Button
+                  type="button"
+                  className="dialogue-skip"
+                  aria-label="Passer tous les dialogues"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    skipIntro();
+                  }}
+                >
+                  <SkipForward aria-hidden="true" size={18} />
+                  Passer
+                </Button>
+              </div>
             </div>
           </div>
         )}
